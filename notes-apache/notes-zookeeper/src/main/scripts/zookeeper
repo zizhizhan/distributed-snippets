@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+require 'find'
+require 'thor'
+
+CFG_TEMPLATE = <<-CFG
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=<%= rootdir %>/zoo1/data
+dataLogDir=<%= rootdir %>/zoo1/logs
+clientPort=2181
+
+server.1=localhost:2888:3888
+server.2=localhost:2889:3889
+server.3=localhost:2890:3890
+CFG
+
+class Zookeeper < Thor
+  include Actions
+
+  desc 'start 1', ''
+  def start(dir = nil)
+    vardir = 'aaa'
+    puts generate(CFG_TEMPLATE, vardir: 'bbb')
+  end
+
+  private
+  def generate(template, locals={})
+    context = new_binding(locals)
+    content = CapturableERB.new(template, nil, "-", "@output_buffer").result(context)
+  end
+
+  def new_binding(locals)
+    b = binding
+    locals.each do |name, value|
+      b.local_variable_set(name, value)
+    end
+    b
+  end
+
+end
+
+Zookeeper.start(ARGV)
