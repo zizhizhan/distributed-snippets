@@ -1,0 +1,174 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+require 'thor'
+
+class Runner
+  include Thor::Base
+
+  def self.batch(&block)
+    runner = Runner.new
+    runner.instance_eval(&block)
+    runner.execute
+  end
+
+  def initialize(config = {}, &block)
+    @config = config
+    instance_eval(&block) if block_given?
+  end
+
+  def scripts
+    @scripts ||= []
+  end
+
+  def run(command, config = {})
+    say_status :run, command, config.fetch(:verbose, true)
+    scripts << command
+  end
+
+  def execute
+    command = scripts.join(' && ')
+    return if @config[:'dry-run']
+    @config[:capture] ? `#{command}` : system(command)
+  end
+end
+
+SAMPLE_DB_DIR = File.expand_path('../../resources/sample_dbs', File.realpath(__FILE__))
+PSQL_CMD = "psql -h localhost -p 5432"
+
+%w[northwind sakila world employee school].each do |name|
+  my_class = Class.new do
+    define_method :drop do
+      dbs = `#{PSQL_CMD} -U postgres -l`
+      users = `#{PSQL_CMD} -U postgres -c "\\du+"`
+      Runner.batch do
+        run %(#{PSQL_CMD} -U postgres -c "drop database #{name}") if dbs.include?(name)
+        run %(#{PSQL_CMD} -U postgres -c "drop user #{name}") if users.include?(name)
+      end
+    end
+
+    define_method :init do
+      Runner.batch do
+        say_status :init, "sample db #{SAMPLE_DB_DIR}/#{name}"
+        run %(#{PSQL_CMD} -U postgres template1 -c "create database #{name};")
+        run %(#{PSQL_CMD} -U postgres template1 -c "create user #{name};")
+        run %(#{PSQL_CMD} -U postgres template1 -c "alter user #{name} password '#{name}';")
+
+        dats = Dir.glob("#{SAMPLE_DB_DIR}/#{name}/*.dat")
+        if dats.empty?
+          Dir.glob("#{SAMPLE_DB_DIR}/#{name}/*.sql").each do |sql_file|
+            run "#{PSQL_CMD} #{name} < #{sql_file}"
+          end
+        else
+          Dir.glob("#{SAMPLE_DB_DIR}/#{name}/*.sql").each do |sql_file|
+            sql_template = File.read(sql_file)
+            sql = sql_template.gsub('$$PATH$$') do
+              "#{SAMPLE_DB_DIR}/#{name}"
+            end
+            tmp_file = "/tmp/#{name}.sql"
+            File.write(tmp_file, sql)
+            run "#{PSQL_CMD} #{name} < #{tmp_file}"
+          end
+        end
+
+        run %(#{PSQL_CMD} template1 -c "grant all on DATABASE #{name} to #{name};")
+        run %(#{PSQL_CMD} #{name} -c "GRANT ALL on ALL tables IN SCHEMA public to #{name};")
+      end
+    end
+  end
+  Object.const_set(name.capitalize, my_class)
+end
+
+# PostgreSQL
+class PG < Thor
+  DATA_DIR = '/tmp/postgres'.freeze
+
+  desc 'northwind drop init', 'Init Northwind'
+  def northwind(*cmds)
+    setup_sample_db(Northwind, *cmds)
+  end
+
+  desc 'sakila drop init', 'Init Sakila'
+  def sakila(*cmds)
+    setup_sample_db(Sakila, *cmds)
+  end
+
+  desc 'world drop init', 'Init world database'
+  def world(*cmds)
+    setup_sample_db(World, *cmds)
+  end
+
+  desc 'employee drop init', 'Init HR sample database'
+  def employee(*cmds)
+    setup_sample_db(Employee, *cmds)
+  end
+
+  desc 'school drop init', 'Init school sample database'
+  def school(*cmds)
+    setup_sample_db(School, *cmds)
+  end
+
+  desc 'useradd', 'Set super user for postgresql.'
+  def useradd(user = 'postgres', password = 'postgres')
+    sqls = ["CREATE USER #{user} WITH PASSWORD '#{password}';", "ALTER USER #{user} WITH SUPERUSER;"]
+    Runner.batch do
+      sqls.each do |sql|
+        run %(psql -h localhost -p 5432 -U postgres -d postgres -c "#{sql}")
+      end
+    end
+  end
+
+  desc 'dbs', 'show all databases'
+  def dbs
+    Runner.batch do
+      # run %q{psql -h localhost -p 5432 -U postgres -d postgres -c "\list+"}
+      run 'psql -h localhost -p 5432 -U postgres --list'
+    end
+  end
+
+  desc 'users', 'show all users'
+  def users
+    Runner.batch do
+      # run %q{psql  -h localhost -p 5432 -U postgres -d postgres -c "\du+"}
+      run %q(psql -h localhost -p 5432 -U postgres -c "\du+")
+    end
+  end
+
+  desc 'schemas northwind', 'show all schemas'
+  def schemas(db)
+    Runner.batch do
+      run %(#{PSQL_CMD} -d #{db} -c '\\dn+')
+    end
+  end
+
+  desc 'start', 'Start pg server'
+  def start
+    Runner.batch do
+      run "docker run -d --name local-postgres --rm -v #{DATA_DIR}:/var/lib/postgresql/data -p 5432:5432 postgres:11-alpine"
+    end
+  end
+
+  desc 'stop', 'Stop pg server'
+  def stop
+    Runner.batch do
+      run "docker stop local-postgres"
+    end
+  end
+
+  desc 'log', 'Pg log'
+  def log
+    Runner.batch do
+      run "docker logs -f local-postgres"
+    end
+  end
+
+  private
+
+  def setup_sample_db(clazz, *cmds)
+    obj = clazz.new
+    cmds.each do |cmd|
+      obj.__send__(cmd)
+    end
+  end
+end
+
+PG.start(ARGV)
