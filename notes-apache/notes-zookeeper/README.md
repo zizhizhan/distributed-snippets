@@ -8,7 +8,7 @@
 - docker: 18.06.1-ce
 - docker-compose: 1.22.0
 
-## 2 本地环境安装
+## 2 Zookeeper Setup
 
 ### 2.1 安装 zookeeper
 

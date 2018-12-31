@@ -143,6 +143,7 @@
     <modules>
         <module>notes-apache</module>
         <module>storage/notes-h2</module>
+        <module>storage/notes-postgres</module>
     </modules>
 
 </project>
