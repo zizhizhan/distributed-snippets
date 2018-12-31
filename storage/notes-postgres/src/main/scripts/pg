@@ -121,7 +121,7 @@ class PG < Thor
   def dbs
     Runner.batch do
       # run %q{psql -h localhost -p 5432 -U postgres -d postgres -c "\list+"}
-      run 'psql -h localhost -p 5432 -U postgres --list'
+      run "#{PSQL_CMD} -U postgres --list"
     end
   end
 
@@ -129,7 +129,7 @@ class PG < Thor
   def users
     Runner.batch do
       # run %q{psql  -h localhost -p 5432 -U postgres -d postgres -c "\du+"}
-      run %q(psql -h localhost -p 5432 -U postgres -c "\du+")
+      run %(#{PSQL_CMD} -U postgres -c "\\du+")
     end
   end
 
