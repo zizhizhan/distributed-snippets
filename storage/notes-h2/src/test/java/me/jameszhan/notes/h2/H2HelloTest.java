@@ -2,12 +2,16 @@ package me.jameszhan.notes.h2;
 
 import lombok.extern.slf4j.Slf4j;
 import org.h2.tools.RunScript;
+import org.h2.tools.Server;
 import org.junit.*;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +30,24 @@ public class H2HelloTest {
     @BeforeClass
     public static void startServer() throws ClassNotFoundException {
         Class.forName("org.h2.Driver");
+    }
+
+    @Test
+    public void testLocalStorage() throws SQLException, IOException {
+        DriverManager.getConnection("jdbc:h2:~/h2_test");
+        DriverManager.getConnection("jdbc:h2:/Users/james/h2_test2");
+        DriverManager.getConnection("jdbc:h2:file:/Users/james/h2_test3");
+
+        Server.createTcpServer().start();
+        DriverManager.getConnection("jdbc:h2:tcp://localhost/~/h2_test4");
+        DriverManager.getConnection("jdbc:h2:tcp://localhost:9092/~/h2_test5");
+
+        String[] dbFiles = { "~/h2_test.mv.db", "/Users/james/h2_test2.mv.db", "/Users/james/h2_test3.mv.db",
+                "~/h2_test4.mv.db", "~/h2_test5.mv.db" };
+        for (String dbFile : dbFiles) {
+            dbFile = dbFile.replaceFirst("^~", System.getProperty("user.home"));
+            log.info("Remove {} {}", dbFile, Files.deleteIfExists(Paths.get(dbFile)) ? "success" : "failure");
+        }
     }
 
     @Test
@@ -95,7 +117,7 @@ public class H2HelloTest {
             }
 
             Long studentId = null;
-            String addSQL = "INSERT INTO students(name, class_id, bio) VALUES(?, 1, ?) RETURNING id";
+            String addSQL = "INSERT INTO students(name, class_id, bio) VALUES(?, 1, ?)";
             try (PreparedStatement pst = conn.prepareStatement(addSQL, Statement.RETURN_GENERATED_KEYS)) {
                 pst.setString(1, studentName);
                 pst.setString(2, "James Zhan");
@@ -134,6 +156,8 @@ public class H2HelloTest {
                 }
             }
         }
+
+        whoSelectedAllCourses(url);
     }
 
     /**
@@ -143,6 +167,10 @@ public class H2HelloTest {
     public void whoSelectedAllCourses() throws SQLException {
         String url = "jdbc:h2:/tmp/test_school";
         initDbSchool(url);
+        whoSelectedAllCourses(url);
+    }
+
+    private void whoSelectedAllCourses(String url) throws SQLException {
         String sql = "SELECT id, name FROM students s "
                 + "WHERE NOT EXISTS ("
                 + "  SELECT * FROM courses c WHERE NOT EXISTS ("
@@ -160,65 +188,6 @@ public class H2HelloTest {
             }
         }
     }
-
-
-
-//    @BeforeClass
-//    public static void startServer() {
-//        log.info("Start h2...");
-//        try {
-//            server = Server.createTcpServer().start();
-//            log.info("h2 database start successful");
-//        } catch (SQLException e) {
-//            log.error("Start h2 error.", e);
-//        }
-//    }
-//
-//    @Before
-//    public void setUp() throws ClassNotFoundException {
-//        Class.forName("org.h2.Driver");
-//    }
-//
-//    @Test
-//    public void testConnectionString() throws SQLException {
-//        DriverManager.getConnection("jdbc:h2:~/h2_test");
-//        DriverManager.getConnection("jdbc:h2:/Users/james/h2_test2");
-//        DriverManager.getConnection("jdbc:h2:file:/Users/james/h2_test3");
-//        DriverManager.getConnection("jdbc:h2:tcp://localhost/~/h2_test4");
-//        DriverManager.getConnection("jdbc:h2:tcp://localhost:9092/~/h2_test5");
-//    }
-//
-//    @After
-//    public void tearDown() {
-//    }
-//
-//    @Test
-//    public void useH2() throws Exception {
-//        Connection conn = DriverManager.getConnection(dbDir, user, password);
-//
-//        Statement stat = conn.createStatement();
-//        // insert data
-//        stat.execute("CREATE TABLE TEST(NAME VARCHAR)");
-//        stat.execute("INSERT INTO TEST VALUES('Hello World')");
-//        // use data
-//        ResultSet result = stat.executeQuery("select name from test ");
-//        int i = 1;
-//        while (result.next()) {
-//            System.out.println(i++ + ":" + result.getString("name"));
-//        }
-//        result.close();
-//        stat.close();
-//        conn.close();
-//    }
-//
-//    @AfterClass
-//    public static void stopServer() {
-//        if (server != null) {
-//            log.info("h2 status is {}", server.getStatus());
-//            log.info("Stop h2...");
-//            server.stop();
-//        }
-//    }
 
     private void initDbSchool(String url) throws SQLException {
         String sqlPath = "sample_dbs/school/school.sql";

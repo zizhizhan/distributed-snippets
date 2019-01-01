@@ -63,13 +63,38 @@ public class PgHelloTest {
             }
 
             String studentName = "James";
-
-            String delSQL = "DELETE FROM students WHERE name = ?";
-            try (PreparedStatement pst = conn.prepareStatement(delSQL)) {
+            Long originStudentId = null;
+            String querySQL = "SELECT id FROM students WHERE name = ? LIMIT 1";
+            try (PreparedStatement pst = conn.prepareStatement(querySQL)) {
                 pst.setString(1, studentName);
-                pst.executeUpdate();
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        originStudentId = rs.getLong(1);
+                    }
+                }
             } catch (SQLException e) {
-                log.error("Delete {} failure.", studentName, e);
+                log.error("Query {} failure.", studentName, e);
+            }
+
+            if (originStudentId != null) {
+                try (Statement st = conn.createStatement()) {
+                    conn.setAutoCommit(false);
+                    st.addBatch("DELETE FROM students_courses WHERE student_id = " + originStudentId);
+                    st.addBatch("DELETE FROM students WHERE id = " + originStudentId);
+                    int[] counts = st.executeBatch();
+                    log.info("Committed {} updates for deleted {}.", counts.length, originStudentId);
+                    for (int i = 0; i < counts.length; i++) {
+                        log.info("counts[{}] = {}.", i, counts[i]);
+                    }
+                    conn.commit();
+                } catch (SQLException e) {
+                    try {
+                        log.warn(e.getMessage(), e);
+                        conn.rollback();
+                    } catch (SQLException e2) {
+                        log.error(e2.getMessage(), e2);
+                    }
+                }
             }
 
             Long studentId = null;
