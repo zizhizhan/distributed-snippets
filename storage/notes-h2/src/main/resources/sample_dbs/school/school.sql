@@ -19,7 +19,7 @@ CREATE TABLE courses (
     id serial PRIMARY KEY,
     name varchar(32) NOT NULL,
     period int default 60,
-    description text NOT NULL,
+    description text,
     level smallint default 0,
     status varchar(16) default 'AVAILABLE',
     teacher_id int NOT NULL,

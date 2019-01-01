@@ -141,7 +141,7 @@ Changing other settings | `jdbc:h2:<url>;<setting>=<value>[;<setting>=<value>...
 本地嵌入式连接 | `jdbc:h2:[file:][<path>]<databaseName>` | jdbc:h2:~/test <br> jdbc:h2:file:/data/sample <br> jdbc:h2:file:C:/data/sample (Windows only)
 内存模式（private）| `jdbc:h2:mem:` |
 内存模式（named）| `jdbc:h2:mem:<databaseName>` | jdbc:h2:mem:test_mem
-服务器模式（TCP/IP）| `jdbc:h2:tcp://<server>[:<port>]/[]<databaseName>` | jdbc:h2:tcp://localhost/~/test <br> jdbc:h2:tcp://dbserv:8084/~/sample <br> jdbc:h2:tcp://localhost/mem:test
+服务器模式（TCP/IP）| `jdbc:h2:tcp://<server>[:<port>]/[<path>]<databaseName>` | jdbc:h2:tcp://localhost/~/test <br> jdbc:h2:tcp://dbserv:8084/~/sample <br> jdbc:h2:tcp://localhost/mem:test
 服务器模式（TLS）| `jdbc:h2:ssl://<server>[:<port>]/<databaseName>` | jdbc:h2:ssl://localhost:8085/~/sample;
 加密方式 | `jdbc:h2:<url>;CIPHER=AES` | jdbc:h2:ssl://localhost/~/test;CIPHER=AES <br> jdbc:h2:file:~/secure;CIPHER=AES
 文档锁定 | `jdbc:h2:<url>;FILE_LOCK={FILE\|SOCKET\|NO}` | jdbc:h2:file:~/private;CIPHER=AES;FILE_LOCK=SOCKET
