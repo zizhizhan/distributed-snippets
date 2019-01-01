@@ -227,6 +227,22 @@ COPY students_courses(student_id, course_id) FROM stdin WITH DELIMITER '|';
 7|46
 \.
 
+
+SELECT setval('teachers_id_seq', (SELECT MAX(id) from "teachers"));
+SELECT setval('students_id_seq', (SELECT MAX(id) from "students"));
+SELECT setval('classes_id_seq', (SELECT MAX(id) from "classes"));
+SELECT setval('courses_id_seq', (SELECT MAX(id) from "courses"));
+
+GRANT SELECT ON teachers_id_seq TO school;
+GRANT SELECT ON students_id_seq TO school;
+GRANT SELECT ON classes_id_seq TO school;
+GRANT SELECT ON courses_id_seq TO school;
+
+GRANT UPDATE ON teachers_id_seq TO school;
+GRANT UPDATE ON students_id_seq TO school;
+GRANT UPDATE ON classes_id_seq TO school;
+GRANT UPDATE ON courses_id_seq TO school;
+
 ANALYZE teachers;
 ANALYZE students;
 ANALYZE classes;

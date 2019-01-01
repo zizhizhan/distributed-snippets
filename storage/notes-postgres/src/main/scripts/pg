@@ -133,6 +133,13 @@ class PG < Thor
     end
   end
 
+  desc 'tables', 'show all tables'
+  def tables(db)
+    Runner.batch do
+      run %(#{PSQL_CMD} -U postgres -d #{db} -c "\\dt+")
+    end
+  end
+
   desc 'schemas northwind', 'show all schemas'
   def schemas(db)
     Runner.batch do
