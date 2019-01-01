@@ -56,11 +56,6 @@ COMMIT;
 
 
 
-COPY teachers(id, name, bio) FROM stdin WITH DELIMITER '|';
-1|张老师|毁人不倦
-2|李老师|坑人不止
-3|王老师|兵不血刃
-\.
 
 COPY classes(id, name, department) FROM stdin WITH DELIMITER '|';
 1|2018计算机软件与理论|计算机学院

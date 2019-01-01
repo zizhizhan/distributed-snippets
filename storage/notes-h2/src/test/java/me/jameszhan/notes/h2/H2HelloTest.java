@@ -43,12 +43,20 @@ public class H2HelloTest {
             RunScript.execute(conn, new InputStreamReader(in, StandardCharsets.UTF_8));
 
             URL teacherCsv = contextClassLoader.getResource("sample_dbs/school/teachers.csv");
+            URL classCsv = contextClassLoader.getResource("sample_dbs/school/classes.csv");
+            URL studentCsv = contextClassLoader.getResource("sample_dbs/school/students.csv");
+
+            if (teacherCsv == null || studentCsv == null) {
+                return;
+            }
 
             try (Statement st = conn.createStatement()) {
-                if (teacherCsv != null) {
-                    st.executeUpdate("INSERT INTO teachers(name, bio) "
-                            + "SELECT name, bio FROM CSVREAD('" + teacherCsv + "')");
-                }
+                st.executeUpdate("INSERT INTO teachers(name, bio) "
+                        + "SELECT name, bio FROM CSVREAD('" + teacherCsv + "')");
+                st.executeUpdate("INSERT INTO classes(name, department) "
+                        + "SELECT name, department FROM CSVREAD('" + classCsv + "')");
+                st.executeUpdate("INSERT INTO students(name, class_id, bio) "
+                        + "SELECT name, class_id, bio FROM CSVREAD('" + studentCsv + "')");
             }
 
 //            insert into my_table( id, message, code ) values (
@@ -56,18 +64,11 @@ public class H2HelloTest {
 //                    from CSVREAD( 'myfile.csv', 'id,message,code', null )
 //            );
 
+            String[] tables = { "teachers", "classes", "students" };
             try (Statement statement = conn.createStatement()) {
-                String sql = "SELECT * FROM teachers;";
-                try (ResultSet rs = statement.executeQuery(sql)) {
-                    ResultSetMetaData meta = rs.getMetaData();
-                    while (rs.next()) {
-                        for (int i = 0; i < meta.getColumnCount(); i++) {
-                            if (i == meta.getColumnCount() - 1) {
-                                log.info("{}: {}\n", meta.getColumnLabel(i + 1), rs.getString(i + 1));
-                            } else {
-                                log.info("{}: {}", meta.getColumnLabel(i + 1), rs.getString(i + 1));
-                            }
-                        }
+                for (String table : tables) {
+                    try (ResultSet rs = statement.executeQuery("SELECT * FROM " + table + ";")) {
+                        showResultSet(rs);
                     }
                 }
             }
@@ -130,5 +131,18 @@ public class H2HelloTest {
 //            server.stop();
 //        }
 //    }
+
+    private void showResultSet(ResultSet rs) throws SQLException {
+        ResultSetMetaData meta = rs.getMetaData();
+        while (rs.next()) {
+            for (int i = 0; i < meta.getColumnCount(); i++) {
+                if (i == meta.getColumnCount() - 1) {
+                    log.info("{}: {}\n", meta.getColumnLabel(i + 1), rs.getString(i + 1));
+                } else {
+                    log.info("{}: {}", meta.getColumnLabel(i + 1), rs.getString(i + 1));
+                }
+            }
+        }
+    }
 
 }
