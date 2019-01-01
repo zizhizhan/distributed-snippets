@@ -2,21 +2,21 @@ BEGIN;
 
 DROP TABLE IF EXISTS teachers;
 CREATE TABLE teachers (
-    id serial PRIMARY KEY,
+    id bigint auto_increment PRIMARY KEY,
     name varchar(32) NOT NULL,
     bio text
 );
 
 DROP TABLE IF EXISTS classes;
 CREATE TABLE classes (
-    id serial PRIMARY KEY,
+    id bigint auto_increment PRIMARY KEY,
     name varchar(32) NOT NULL UNIQUE,
     department char(64) NOT NULL
 );
 
 DROP TABLE IF EXISTS courses;
 CREATE TABLE courses (
-    id serial PRIMARY KEY,
+    id bigint auto_increment PRIMARY KEY,
     name varchar(32) NOT NULL,
     period int default 60,
     description text,
@@ -28,7 +28,7 @@ CREATE TABLE courses (
 
 DROP TABLE IF EXISTS students;
 CREATE TABLE students (
-    id serial PRIMARY KEY,
+    id bigint auto_increment PRIMARY KEY,
     name varchar(32) NOT NULL,
     first_name varchar(32),
     last_name varchar(32),

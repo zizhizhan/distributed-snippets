@@ -5,6 +5,7 @@ import org.h2.tools.RunScript;
 import org.h2.tools.Server;
 import org.junit.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -107,7 +108,6 @@ public class H2HelloTest {
             }
 
             String studentName = "James";
-
             String delSQL = "DELETE FROM students WHERE name = ?";
             try (PreparedStatement pst = conn.prepareStatement(delSQL)) {
                 pst.setString(1, studentName);
@@ -158,6 +158,8 @@ public class H2HelloTest {
         }
 
         whoSelectedAllCourses(url);
+
+        new File("/tmp/test_school").deleteOnExit();
     }
 
     /**
