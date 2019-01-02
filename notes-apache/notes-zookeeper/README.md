@@ -8,15 +8,15 @@
 - docker: 18.06.1-ce
 - docker-compose: 1.22.0
 
-## 2 Zookeeper Setup
+## 2 本地安装
 
-### 2.1 安装 zookeeper
+安装 zookeeper
 
 ```bash
 brew install zookeeper
 ```
 
-### 2.2 检查默认配置
+### 2.1 单机模式
 
 可以在 `/usr/local/etc/zookeeper` 查看 `zookeeper` 的默认配置
 
@@ -30,9 +30,7 @@ dataDir=/usr/local/var/run/zookeeper/data
 clientPort=2181
 ```
 
-### 2.3 单机模式
-
-#### 2.3.1 启动 ZooKeeper 服务
+#### 2.1.1 启动 ZooKeeper 服务
 
 ```bash
 zkServer start
@@ -46,22 +44,13 @@ zkServer status
 # Mode: standalone
 ```
 
-#### 2.3.2 验证 ZooKeeper 服务
+#### 2.1.2 验证 ZooKeeper 服务
 
 ```bash
-➜ zkCli -server 127.0.0.1:2181
-
-Connecting to 127.0.0.1:2181
-Welcome to ZooKeeper!
-JLine support is enabled
-
-WATCHER::
-
-WatchedEvent state:SyncConnected type:None path:null
-[zk: 127.0.0.1:2181(CONNECTED) 0] %
+zkCli -server 127.0.0.1:2181
 ```
 
-#### 2.3.3 停止 ZooKeeper 服务
+#### 2.1.3 停止 ZooKeeper 服务
 
 ```bash
 zkServer stop
@@ -70,90 +59,161 @@ zkServer stop
 # Stopping zookeeper ... STOPPED
 ```
 
-### 2.4 集群模式
+### 2.2 集群模式
 
-```bash
-#master
-echo "1" > /james/var/zookeeper/zoo1/data/myid
+下面演示3个实例的配置
 
-#slave1
-echo "2">/usr/local/zookeeper/data/myid
+`/tmp/zoo/zk1/zoo.cfg`
 
-#slave2
-echo "3">/usr/local/zookeeper/data/myid
+```ini
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=/tmp/zoo/zk1/data
+dataLogDir=/tmp/zoo/zk1/logs
+clientPort=2181
+
+server.1=localhost:2888:3888
+server.2=localhost:2889:3889
+server.3=localhost:2890:3890
 ```
 
-#### 2.4.1 启动 ZooKeeper 服务
+`/tmp/zoo/zk2/zoo.cfg`
 
-```bash
-zkServer start
-# ZooKeeper JMX enabled by default
-# Using config: /usr/local/etc/zookeeper/zoo.cfg
-# Starting zookeeper ... STARTED
+```ini
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=/tmp/zoo/zk2/data
+dataLogDir=/tmp/zoo/zk2/logs
+clientPort=2182
 
-zkServer status
-# ZooKeeper JMX enabled by default
-# Using config: /usr/local/etc/zookeeper/zoo.cfg
-# Mode: standalone
+server.1=localhost:2888:3888
+server.2=localhost:2889:3889
+server.3=localhost:2890:3890
 ```
 
-#### 2.4.2 验证 ZooKeeper 服务
+`/tmp/zoo/zk3/zoo.cfg`
 
-```bash
-➜ zkCli -server 127.0.0.1:2181
+```conf
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=/tmp/zoo/zk3/data
+dataLogDir=/tmp/zoo/zk3/logs
+clientPort=2183
 
-Connecting to 127.0.0.1:2181
-Welcome to ZooKeeper!
-JLine support is enabled
-
-WATCHER::
-
-WatchedEvent state:SyncConnected type:None path:null
-[zk: 127.0.0.1:2181(CONNECTED) 0] %
+server.1=localhost:2888:3888
+server.2=localhost:2889:3889
+server.3=localhost:2890:3890
 ```
 
-#### 2.3.3 停止 ZooKeeper 服务
+#### 2.2.1 启动 ZooKeeper 服务
 
 ```bash
-zkServer stop
-# ZooKeeper JMX enabled by default
-# Using config: /usr/local/etc/zookeeper/zoo.cfg
-# Stopping zookeeper ... STOPPED
+echo "1" > /tmp/zoo/zk1/data/myid
+zkServer start /tmp/zoo/zk1/zoo.cfg
+
+echo "2" > /tmp/zoo/zk2/data/myid
+zkServer start /tmp/zoo/zk2/zoo.cfg
+
+echo "3" > /tmp/zoo/zk3/data/myid
+zkServer start /tmp/zoo/zk3/zoo.cfg
 ```
 
-### 通过 Docker
-
-#### 单个实例
-
-##### 启动
+或者
 
 ```bash
-docker run --name zookeeper001 -d zookeeper:latest
+src/main/scripts/zookeeper cluster start /tmp/zoo
 ```
 
-##### 查询运行状态
+#### 2.2.2 验证 ZooKeeper 服务
+
+```bash
+zkCli -server 127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183
+```
+
+#### 2.2.3 停止 ZooKeeper 服务
+
+```bash
+zkServer stop /tmp/zoo/zk1/zoo.cfg
+zkServer stop /tmp/zoo/zk2/zoo.cfg
+zkServer stop /tmp/zoo/zk3/zoo.cfg
+```
+
+或
+
+```bash
+src/main/scripts/zookeeper cluster stop /tmp/zoo
+```
+
+## 3. Docker 安装
+
+### 3.1 单个实例
+
+#### 3.1.1 启动 ZooKeeper 服务
+
+```bash
+docker run -p 2182:2181 --name zookeeper001 -d zookeeper:latest
+```
+
+#### 3.1.2 查询运行状态
 
 ```bash
 docker ps
-docker logs -f zookeeper00
-```
+docker logs -f zookeeper001
 
-##### 连接
-
-```bash
+# 连接
 docker run -it --rm --link zookeeper001:zookeeper zookeeper zkCli.sh -server zookeeper
+# 或
+zkCli -server 127.0.0.1:2182
 ```
 
-##### 关闭
+#### 3.1.3 停止 ZooKeeper 服务
 
 ```bash
 docker stop zookeeper001
 docker rm zookeeper001
 ```
 
+### 3.2 集群模式
 
-- ZOO_MY_ID 表示 ZK 服务的 ID，它是 1-255 之间的整数，必须在集群中唯一
-- ZOO_SERVERS 表示 ZK 集群的主机列表
+```yaml
+version: '3'
+services:
+  zoo1:
+    image: zookeeper
+    restart: always
+    container_name: zoo1
+    ports:
+      - '2181:2181'
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+  zoo2:
+    image: zookeeper
+    restart: always
+    container_name: zoo2
+    ports:
+      - "2182:2181"
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+  zoo3:
+    image: zookeeper
+    restart: always
+    container_name: zoo3
+    ports:
+      - "2183:2181"
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+```
+
+> ZOO_MY_ID 表示 ZK 服务的 ID，它是 1-255 之间的整数，必须在集群中唯一，
+> ZOO_SERVERS 表示 ZK 集群的主机列表
+
+#### 3.2.1 启动 ZooKeeper 服务
 
 ```bash
 COMPOSE_PROJECT_NAME=zk_test docker-compose up
@@ -161,11 +221,27 @@ COMPOSE_PROJECT_NAME=zk_test docker-compose up
 COMPOSE_PROJECT_NAME=zk_test docker-compose start
 ```
 
-####
+#### 3.2.2 查询运行状态
 
 ```bash
+docker ps
+docker logs -f zoo1
+docker logs -f zoo2
+docker logs -f zoo3
 COMPOSE_PROJECT_NAME=zk_test docker-compose ps
+
+# 连接
+docker run -it --rm \
+        --link zoo1:zk1 \
+        --link zoo2:zk2 \
+        --link zoo3:zk3 \
+        --net zk_test_default \
+        zookeeper zkCli.sh -server zk1:2181,zk2:2181,zk3:2181
+# 或
+zkCli -server 127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183
 ```
+
+#### 3.2.3 关闭 ZooKeeper 服务
 
 ```bash
 COMPOSE_PROJECT_NAME=zk_test docker-compose stop
@@ -174,12 +250,3 @@ COMPOSE_PROJECT_NAME=zk_test docker-compose rm
 # 或者
 COMPOSE_PROJECT_NAME=zk_test docker-compose down
 ```
-
-
-
-docker run -it --rm \
-        --link zoo1:zk1 \
-        --link zoo2:zk2 \
-        --link zoo3:zk3 \
-        --net zk_test_default \
-        zookeeper zkCli.sh -server zk1:2181,zk2:2181,zk3:2181

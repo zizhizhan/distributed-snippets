@@ -7,36 +7,91 @@ CFG_TEMPLATE = <<-CFG
 tickTime=2000
 initLimit=10
 syncLimit=5
-dataDir=<%= rootdir %>/zoo1/data
-dataLogDir=<%= rootdir %>/zoo1/logs
-clientPort=2181
-
+dataDir=<%= zkdir %>/data
+dataLogDir=<%= zkdir %>/logs
+clientPort=<%= port %>
+<% if cluster_mode then %>
 server.1=localhost:2888:3888
 server.2=localhost:2889:3889
 server.3=localhost:2890:3890
+<% end %>
 CFG
+
+class Runner
+  include Thor::Base
+
+  def self.batch(&block)
+    runner = Runner.new
+    runner.instance_eval(&block)
+    runner.execute
+  end
+
+  def initialize(config = {}, &block)
+    @config = config
+    instance_eval(&block) if block_given?
+  end
+
+  def scripts
+    @scripts ||= []
+  end
+
+  def run(command, config = {})
+    say_status :run, command, config.fetch(:verbose, true)
+    scripts << command
+  end
+
+  def execute
+    command = scripts.join(' && ')
+    return if @config[:'dry-run']
+    @config[:capture] ? `#{command}` : system(command)
+  end
+end
 
 class Zookeeper < Thor
   include Actions
 
-  desc 'start 1', ''
-  def start(dir = nil)
-    vardir = 'aaa'
-    puts generate(CFG_TEMPLATE, vardir: 'bbb')
+  desc 'single /tmp/zoo', 'start zookeeper in single mode'
+  option :port, default: 2181
+  def single(cmd, dir = '/tmp/zoo')
+    config = generate(CFG_TEMPLATE, zkdir: dir, port: options[:port], cluster_mode: false)
+    FileUtils.mkdir_p("#{dir}") unless Dir.exist?(dir)
+    open "#{dir}/zoo.cfg", 'w:UTF-8' do |io|
+      io.write(config)
+    end
+    `zkServer #{cmd} #{dir}/zoo.cfg`
+  end
+
+  desc 'cluster /tmp/zoo', 'start zookeeper in cluster mode'
+  def cluster(cmd, dir = '/tmp/zoo')
+    ["#{dir}/zk1", "#{dir}/zk2", "#{dir}/zk3"].each_with_index do |zk, i|
+      config = generate(CFG_TEMPLATE, zkdir: zk, port: 2181 + i, cluster_mode: true)
+      FileUtils.mkdir_p("#{zk}/data") unless Dir.exist?(zk)
+      `echo #{i + 1} > #{zk}/data/myid`
+      open "#{zk}/zoo.cfg", 'w:UTF-8' do |io|
+        io.write(config)
+      end
+      puts config
+    end
+
+    Runner.batch do
+      ["#{dir}/zk1", "#{dir}/zk2", "#{dir}/zk3"].each do |zk|
+        run "zkServer #{cmd} #{zk}/zoo.cfg"
+      end
+    end
   end
 
   private
   def generate(template, locals={})
     context = new_binding(locals)
-    content = CapturableERB.new(template, nil, "-", "@output_buffer").result(context)
+    CapturableERB.new(template, nil, "-", "@output_buffer").result(context)
   end
 
   def new_binding(locals)
-    b = binding
-    locals.each do |name, value|
-      b.local_variable_set(name, value)
+    binding.tap do |b|
+      locals.each do |name, value|
+        b.local_variable_set(name, value)
+      end
     end
-    b
   end
 
 end
