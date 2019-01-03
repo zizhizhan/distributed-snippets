@@ -70,7 +70,6 @@ class Zookeeper < Thor
       open "#{zk}/zoo.cfg", 'w:UTF-8' do |io|
         io.write(config)
       end
-      puts config
     end
 
     Runner.batch do

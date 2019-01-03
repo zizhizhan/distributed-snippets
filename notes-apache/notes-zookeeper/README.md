@@ -130,6 +130,51 @@ src/main/scripts/zookeeper cluster start /tmp/zoo
 #### 2.2.2 验证 ZooKeeper 服务
 
 ```bash
+echo stat | nc 127.0.0.1 2181
+# Zookeeper version: 3.4.13-2d71af4dbe22557fda74f9a9b4309b15a7487f03, built on 06/29/2018 04:05 GMT
+# Clients:
+#  /127.0.0.1:63463[0](queued=0,recved=1,sent=0)
+
+# Latency min/avg/max: 0/0/0
+# Received: 3
+# Sent: 2
+# Connections: 1
+# Outstanding: 0
+# Zxid: 0x300000002
+# Mode: follower
+# Node count: 4
+
+echo stat | nc 127.0.0.1 2182
+# Zookeeper version: 3.4.13-2d71af4dbe22557fda74f9a9b4309b15a7487f03, built on 06/29/2018 04:05 GMT
+# Clients:
+#  /127.0.0.1:63723[0](queued=0,recved=1,sent=0)
+
+# Latency min/avg/max: 0/0/0
+# Received: 1
+# Sent: 0
+# Connections: 1
+# Outstanding: 0
+# Zxid: 0x400000000
+# Mode: leader
+# Node count: 4
+# Proposal sizes last/min/max: -1/-1/-1
+
+echo stat | nc 127.0.0.1 2183
+# Zookeeper version: 3.4.13-2d71af4dbe22557fda74f9a9b4309b15a7487f03, built on 06/29/2018 04:05 GMT
+# Clients:
+#  /127.0.0.1:63936[0](queued=0,recved=1,sent=0)
+
+# Latency min/avg/max: 0/0/0
+# Received: 2
+# Sent: 1
+# Connections: 1
+# Outstanding: 0
+# Zxid: 0x300000002
+# Mode: follower
+# Node count: 4
+```
+
+```bash
 zkCli -server 127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183
 ```
 

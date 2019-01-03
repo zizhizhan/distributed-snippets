@@ -34,9 +34,6 @@ OS support UNIX         | yes        | yes        | yes        | yes        | ye
 OS support Symbian      | no         | no         | no         | yes        | yes
 Homepage                | www.h2database.com | www.hsqldb.org | db.apache.org/derby | www.postgresql.org | www.mysql.com
 
-
-
-
 Feature                           | H2         | Derby      | HSQLDB     | MySQL      | PostgreSQL
 --------------------------------- | ---------- | ---------- | ---------- | ---------- | ----------
 Pure Java                         | Yes        | Yes        | Yes        | No         | No
