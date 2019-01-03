@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,7 +22,7 @@ import java.util.concurrent.CountDownLatch;
 public class DistributedLock {
 
     private static final int DEFAULT_SESSION_TIMEOUT = 5000;
-    private static final String ROOT_NODE = "distributed-lock";
+    private static final String ROOT_NODE = "distributed-locks";
     private static final String COMPETITOR_NODE = "competitor";
     private final static String SEPARATOR = "/";
     private static final byte[] EMPTY_DATA  = {};
@@ -58,80 +60,11 @@ public class DistributedLock {
     }
 
     public boolean tryLock(){
-        String rootPath = SEPARATOR + ROOT_NODE;
-        String lockPath = rootPath + SEPARATOR + lockName;
-        List<String> competitorList = null;
-        try {
-            String path = lockPath + SEPARATOR + COMPETITOR_NODE;
-            competitorPath = zooKeeper.create(path, EMPTY_DATA, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
-            competitorList = zooKeeper.getChildren(lockPath, false);
-        } catch (KeeperException e) {
-            throw new RuntimeException("zookeeper connect error");
-        } catch (InterruptedException e) {
-            log.warn("Interrupt when tryLock.", e);
-        }
-
-        if (competitorPath != null && competitorList != null) {
-            Collections.sort(competitorList);
-            String competitorName = competitorPath.substring(competitorPath.lastIndexOf('/'));
-            log.info("CompetitorName is {}.", competitorName);
-            int index = competitorList.indexOf(competitorName);
-            if (index == -1) {
-                throw new RuntimeException("competitorPath not exist after create");
-            }
-            return (index == 0);
-        } else {
-            throw new RuntimeException("competitorPath not exist after create");
-        }
+        return acquireLock(false);
     }
 
     public void lock() {
-        String rootPath = SEPARATOR + ROOT_NODE;
-        String lockPath = rootPath + SEPARATOR + lockName;
-        List<String> competitorList = null;
-        try {
-            String path = lockPath + SEPARATOR + COMPETITOR_NODE;
-            competitorPath = zooKeeper.create(path, EMPTY_DATA, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
-            competitorList = zooKeeper.getChildren(lockPath, false);
-        } catch (KeeperException e) {
-            throw new RuntimeException("zookeeper connect error");
-        } catch (InterruptedException e) {
-            log.warn("Interrupt when tryLock.", e);
-        }
-
-        if (competitorPath != null && competitorList != null) {
-            log.info("Competitor path is {}.", competitorPath);
-            Collections.sort(competitorList);
-            String competitorName = competitorPath.substring(competitorPath.lastIndexOf('/') + 1);
-            int index = competitorList.indexOf(competitorName);
-            if (index == -1) {
-                throw new RuntimeException("competitorPath not exist after create");
-            } else if (index == 0) {
-                return;
-            } else {
-                CountDownLatch waitLatch = new CountDownLatch(1);
-                String prevCompetitorPath = lockPath + SEPARATOR + competitorList.get(index - 1);
-                try {
-                    Stat prevNodeStat = zooKeeper.exists(prevCompetitorPath, e -> {
-                        if (e.getType().equals(Watcher.Event.EventType.NodeDeleted)
-                                && e.getPath().equals(prevCompetitorPath)) {
-                            waitLatch.countDown();
-                        }
-                    });
-
-                    log.info("{} is waiting for {}.", competitorPath, prevCompetitorPath);
-                    if (prevNodeStat == null) {
-                        return;
-                    } else {
-                        waitLatch.await();
-                    }
-                } catch (KeeperException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        } else {
-            throw new RuntimeException("competitorPath not exist after create");
-        }
+        acquireLock(true);
     }
 
     public void unlock() {
@@ -141,12 +74,77 @@ public class DistributedLock {
         }
         try {
             zooKeeper.delete(competitorPath, -1);
+            competitorPath = null;
         } catch (KeeperException.NoNodeException e) {
             log.info("{} has already removed.", competitorPath);
         } catch (InterruptedException | KeeperException e) {
             throw new RuntimeException(e);
         }
     }
+
+    private boolean acquireLock(boolean needWaitUntilLockReady) {
+        String rootPath = SEPARATOR + ROOT_NODE;
+        String lockPath = rootPath + SEPARATOR + lockName;
+        List<String> competitorList = null;
+        try {
+            // Handle ReentrantLock
+            if (competitorPath != null) {
+                Stat competitorStat = zooKeeper.exists(competitorPath, false);
+                if (competitorStat == null) {
+                    log.error("{} stat is dirty.", competitorPath);
+                }
+                competitorList = zooKeeper.getChildren(lockPath, false);
+            } else {
+                String path = lockPath + SEPARATOR + COMPETITOR_NODE;
+                competitorPath = zooKeeper.create(path, EMPTY_DATA, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+                competitorList = zooKeeper.getChildren(lockPath, false);
+            }
+        } catch (KeeperException e) {
+            throw new RuntimeException("zookeeper connect error");
+        } catch (InterruptedException e) {
+            log.warn("Interrupt when tryLock.", e);
+        }
+
+        if (competitorPath != null && competitorList != null) {
+            log.info("Competitor path is {} in {}.", competitorPath, competitorList);
+            Collections.sort(competitorList);
+            String competitorName = competitorPath.substring(competitorPath.lastIndexOf('/') + 1);
+            int index = competitorList.indexOf(competitorName);
+            if (index == -1) {
+                throw new RuntimeException("competitorPath not exist after create");
+            } else if (index == 0) {
+                return true;
+            } else {
+                if (needWaitUntilLockReady) {
+                    CountDownLatch waitLatch = new CountDownLatch(1);
+                    String prevCompetitorPath = lockPath + SEPARATOR + competitorList.get(index - 1);
+                    try {
+                        Stat prevNodeStat = zooKeeper.exists(prevCompetitorPath, e -> {
+                            if (e.getType().equals(Watcher.Event.EventType.NodeDeleted)
+                                    && e.getPath().equals(prevCompetitorPath)) {
+                                waitLatch.countDown();
+                            }
+                        });
+
+                        log.info("{} is waiting for {}.", competitorPath, prevCompetitorPath);
+                        if (prevNodeStat == null) {
+                            return true;
+                        } else {
+                            waitLatch.await();
+                            return true;
+                        }
+                    } catch (KeeperException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            throw new RuntimeException("competitorPath not exist after create");
+        }
+    }
+
 
     private String createIfAbsent(String path) throws KeeperException, InterruptedException {
         Stat stat = zooKeeper.exists(path,false);
