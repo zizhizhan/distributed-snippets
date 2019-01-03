@@ -8,8 +8,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Created by IntelliJ IDEA.
