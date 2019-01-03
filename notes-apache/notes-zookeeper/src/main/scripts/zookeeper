@@ -14,6 +14,8 @@ clientPort=<%= port %>
 server.1=localhost:2888:3888
 server.2=localhost:2889:3889
 server.3=localhost:2890:3890
+server.4=localhost:2891:3891
+server.5=localhost:2892:3892
 <% end %>
 CFG
 
@@ -63,7 +65,7 @@ class Zookeeper < Thor
 
   desc 'cluster /tmp/zoo', 'start zookeeper in cluster mode'
   def cluster(cmd, dir = '/tmp/zoo')
-    ["#{dir}/zk1", "#{dir}/zk2", "#{dir}/zk3"].each_with_index do |zk, i|
+    ["#{dir}/zk1", "#{dir}/zk2", "#{dir}/zk3", "#{dir}/zk4", "#{dir}/zk5"].each_with_index do |zk, i|
       config = generate(CFG_TEMPLATE, zkdir: zk, port: 2181 + i, cluster_mode: true)
       FileUtils.mkdir_p("#{zk}/data") unless Dir.exist?(zk)
       `echo #{i + 1} > #{zk}/data/myid`
@@ -73,7 +75,7 @@ class Zookeeper < Thor
     end
 
     Runner.batch do
-      ["#{dir}/zk1", "#{dir}/zk2", "#{dir}/zk3"].each do |zk|
+      ["#{dir}/zk1", "#{dir}/zk2", "#{dir}/zk3", "#{dir}/zk4", "#{dir}/zk5"].each do |zk|
         run "zkServer #{cmd} #{zk}/zoo.cfg"
       end
     end
