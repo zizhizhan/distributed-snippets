@@ -1,13 +1,12 @@
 package me.jameszhan.mulberry.plexus;
 
+import me.jameszhan.notes.maven.Utils;
 import org.codehaus.plexus.classworlds.ClassWorld;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.classworlds.realm.NoSuchRealmException;
 
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 /**
  * Created with IntelliJ IDEA.
@@ -31,7 +30,7 @@ public class Launcher {
 
     public static void main(String[] args) throws Exception {
         String classworldsConf = "m3.conf";
-        System.setProperty("maven.home", "/usr/local/Cellar/maven/3.2.1/libexec");
+        Utils.prepareMavenEnv("tools/notes-maven");
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         InputStream in = cl.getResourceAsStream(classworldsConf);
         Launcher launcher = new Launcher();
@@ -42,7 +41,7 @@ public class Launcher {
     protected void launchEnhanced(String[] args) throws ClassNotFoundException, NoSuchMethodException, NoSuchRealmException {
         ClassRealm mainRealm = getMainRealm();
         Class<?> mainClass = getMainClass();
-        Method mainMethod = getEnhancedMainMethod();
+        Method mainMethod = Utils.getEnhancedMainMethod(getMainClass());
         Thread.currentThread().setContextClassLoader(mainRealm);
         try {
             Object ret = mainMethod.invoke(mainClass, args, getWorld());
@@ -57,24 +56,10 @@ public class Launcher {
         }
     }
 
-    protected Method getEnhancedMainMethod() throws ClassNotFoundException, NoSuchMethodException, NoSuchRealmException {
-        Method m = getMainClass().getMethod("main", new Class[]{String[].class, ClassWorld.class});
-
-        int modifiers = m.getModifiers();
-
-        if ( Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers)) {
-            if (m.getReturnType() == Integer.TYPE || m.getReturnType() == Void.TYPE) {
-                return m;
-            }
-        }
-        throw new NoSuchMethodException("public static void main(String[] args) in " + getMainClass());
-    }
-
-    protected void launchStandard(String[] args) throws ClassNotFoundException, IllegalAccessException,
-            InvocationTargetException, NoSuchMethodException, NoSuchRealmException {
+    protected void launchStandard(String[] args) throws ClassNotFoundException, NoSuchMethodException, NoSuchRealmException {
         ClassRealm mainRealm = getMainRealm();
         Class<?> mainClass = getMainClass();
-        Method mainMethod = getMainMethod();
+        Method mainMethod = Utils.getMainMethod(mainClass);
         Thread.currentThread().setContextClassLoader(mainRealm);
         try {
             Object ret = mainMethod.invoke(mainClass, new Object[]{args});
@@ -87,19 +72,6 @@ public class Launcher {
         }  finally {
             Thread.currentThread().setContextClassLoader(systemClassLoader);
         }
-    }
-
-    protected Method getMainMethod() throws ClassNotFoundException, NoSuchMethodException, NoSuchRealmException {
-        Method m = getMainClass().getMethod("main", new Class[]{ String[].class });
-
-        int modifiers = m.getModifiers();
-
-        if ( Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers)) {
-            if (m.getReturnType() == Integer.TYPE || m.getReturnType() == Void.TYPE) {
-                return m;
-            }
-        }
-        throw new NoSuchMethodException("public static void main(String[] args) in " + getMainClass());
     }
 
 

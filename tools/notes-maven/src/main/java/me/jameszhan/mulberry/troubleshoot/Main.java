@@ -2,6 +2,7 @@ package me.jameszhan.mulberry.troubleshoot;
 
 import me.jameszhan.mulberry.maven.MavenStart;
 import me.jameszhan.mulberry.plexus.DebugClassWorldListener;
+import me.jameszhan.notes.maven.Utils;
 import org.codehaus.plexus.classworlds.ClassWorld;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 
@@ -18,13 +19,9 @@ import java.lang.reflect.Modifier;
  */
 public class Main {
 
-    private static final String MVN_VERSION = "3.6.0";
-
     public static void main(String[] args) throws Exception {
-        String currentDir = new File(".").getCanonicalPath();
-        System.out.println("Current Directory: " + currentDir);
-        System.setProperty("user.dir", currentDir);
-        System.setProperty("maven.home", "/usr/local/Cellar/maven/" + MVN_VERSION + "/libexec");
+        Utils.prepareMavenEnv("tools/notes-maven");
+
         String mavenCli = "org.apache.maven.cli.MavenCli";
         String realmId = "maven.core";
 
@@ -32,7 +29,7 @@ public class Main {
         world.addListener(new DebugClassWorldListener());
         ClassRealm classRealm = world.getClassRealm(realmId);
 
-        for(File file : MavenStart.globFiles(String.format("%s%s", System.getProperty("maven.home"), "/lib/*.jar"))) {
+        for(File file : Utils.globFiles(String.format("%s%s", System.getProperty("maven.home"), "/lib/*.jar"))) {
             classRealm.addURL(file.toURI().toURL());
         }
 

@@ -55,14 +55,8 @@ public class Configurator {
     }
 
     public void associateRealms() {
-        List<String> sortRealmNames = new ArrayList<String>(configuredRealms.keySet());
-        Comparator<String> comparator = new Comparator<String>() {
-            public int compare(String g1, String g2) {
-                return g1.compareTo(g2);
-            }
-        };
-
-        Collections.sort(sortRealmNames, comparator);
+        List<String> sortRealmNames = new ArrayList<>(configuredRealms.keySet());
+        Collections.sort(sortRealmNames, Comparator.naturalOrder());
 
         // So now we have something like the following for defined
         // realms:

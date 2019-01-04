@@ -42,13 +42,6 @@ public class DebugClassWorldListener implements ClassWorldListener {
                 System.out.println("parentImports: " + getFieldValue("parentImports", cr));
                 System.out.println("parentClassLoader: " + getFieldValue("parentClassLoader", cr));
                 System.out.println("parent: " + getFieldValue("parent", cr));
-                System.out.println(JSON.toJSONString(cr, new PropertyFilter() {
-                    public boolean apply(Object object, String name, Object value) {
-                        return !name.equalsIgnoreCase("world")
-                                && !name.equalsIgnoreCase("importRealms")
-                                && !name.equalsIgnoreCase("strategy");
-                    }
-                }, SerializerFeature.PrettyFormat));
                 System.out.println("**************************************");
             }
             hasLogged = true;
