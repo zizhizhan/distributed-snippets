@@ -1,6 +1,6 @@
 # Zookeeper 常用命令
 
-## Zookeeper API
+## Zookeeper Java API
 
 ```bash
 └──  zookeeper
@@ -17,6 +17,15 @@
      ├── syscall_map.py
      └── getACL
 ```
+
+## Zookeeper Client 命令
+
+- ls(查看当前节点数据)
+- ls2(查看当前节点数据并能看到更新次数等数据)
+- create(创建一个节点)
+- get(得到一个节点，包含数据和更新次数等数据)
+- set(修改节点)
+- delete(删除一个节点)
 
 ## 检查 Zookeeper 状态
 
