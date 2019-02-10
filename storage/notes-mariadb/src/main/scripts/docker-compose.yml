@@ -1,0 +1,22 @@
+version: '3'
+services:
+  mariadb:
+    image: mariadb/server:10.3
+    container_name: local-mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: test123
+    ports:
+      - '3306:3306'
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma-local
+    ports:
+      - 8080:80
+    environment:
+      - PMA_HOST=db.local
+    depends_on:
+      - mariadb
+    links:
+      - mariadb:db.local

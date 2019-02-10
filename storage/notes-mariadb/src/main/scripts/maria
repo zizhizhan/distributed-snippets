@@ -1,0 +1,149 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+require 'thor'
+
+class Runner
+  include Thor::Base
+
+  def self.batch(&block)
+    runner = Runner.new
+    runner.instance_eval(&block)
+    runner.execute
+  end
+
+  def initialize(config = {}, &block)
+    @config = config
+    instance_eval(&block) if block_given?
+  end
+
+  def scripts
+    @scripts ||= []
+  end
+
+  def run(command, config = {})
+    say_status :run, command, config.fetch(:verbose, true)
+    scripts << command
+  end
+
+  def execute
+    command = scripts.join(' && ')
+    return if @config[:'dry-run']
+    @config[:capture] ? `#{command}` : system(command)
+  end
+end
+
+SAMPLE_DB_DIR = File.expand_path('../../resources/sample_dbs', File.realpath(__FILE__))
+SQL_CMD = "mysql --host=127.0.0.1 --port=3306"
+ROOT_PASS = "test123"
+
+%w[school].each do |name|
+  my_class = Class.new do
+    define_method :drop do
+      dbs = `#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "SHOW DATABASES"`
+      users = `#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "SELECT user FROM mysql.user;"`
+      Runner.batch do
+        run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "DROP DATABASE #{name}") if dbs.include?(name)
+        run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "DROP USER #{name}") if users.include?(name)
+      end
+    end
+
+    define_method :init do
+      Runner.batch do
+        say_status :init, "sample db #{SAMPLE_DB_DIR}/#{name}"
+        run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "CREATE DATABASE #{name};")
+        run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "ALTER DATABASE #{name} CHARACTER SET utf8mb4;")
+        run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "CREATE USER '#{name}'@'%' IDENTIFIED BY '#{name}';")
+        run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "GRANT ALL PRIVILEGES ON #{name}.* TO '#{name}'@'%'; FLUSH PRIVILEGES;")
+
+        dats = Dir.glob("#{SAMPLE_DB_DIR}/#{name}/*.csv")
+        if dats.empty?
+          Dir.glob("#{SAMPLE_DB_DIR}/#{name}/*.sql").each do |sql_file|
+            run "#{SQL_CMD} --user=#{name} --password=#{name} #{name} < #{sql_file}"
+          end
+        else
+          Dir.glob("#{SAMPLE_DB_DIR}/#{name}/*.sql").each do |sql_file|
+            sql_template = File.read(sql_file)
+            sql = sql_template.gsub('$$PATH$$') do
+              "#{SAMPLE_DB_DIR}/#{name}"
+            end
+            tmp_file = "/tmp/#{name}.sql"
+            File.write(tmp_file, sql)
+            run "#{SQL_CMD}  --user=root --password=#{ROOT_PASS} #{name} < #{tmp_file}"
+          end
+        end
+      end
+    end
+  end
+  Object.const_set(name.capitalize, my_class)
+end
+
+# MariaDB
+class Maria < Thor
+  DATA_DIR = '/tmp/mysql'.freeze
+
+  desc 'school drop init', 'Init school sample database'
+  def school(*cmds)
+    setup_sample_db(School, *cmds)
+  end
+
+  desc 'dbs', 'show all databases'
+  def dbs
+    Runner.batch do
+      run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "SHOW DATABASES;")
+    end
+  end
+
+  desc 'users', 'show all users'
+  def users
+    Runner.batch do
+      run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "SELECT user, host FROM mysql.user;")
+    end
+  end
+
+  desc 'tables', 'show all tables'
+  def tables(db)
+    Runner.batch do
+      run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} #{db} -e "SHOW TABLES;")
+    end
+  end
+
+  desc 'start', 'Start MariaDB'
+  def start
+    Runner.batch do
+      run "docker run --name local-mariadb -d --rm -p 3306:3306 -v #{DATA_DIR}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=#{ROOT_PASS} mariadb/server:10.3"
+    end
+  end
+
+  desc 'pma', 'Start phpMyAdmin'
+  def pma
+    Runner.batch do
+      run "docker run --name local-pma --rm -d --link local-mariadb:db.local -p 8080:80 -e PMA_HOST=db.local phpmyadmin/phpmyadmin:4.8"
+    end
+  end
+
+  desc 'stop', 'Stop MariaDB'
+  def stop
+    Runner.batch do
+      run "docker stop local-mariadb"
+      run "docker stop local-pma"
+    end
+  end
+
+  desc 'log', 'MariaDB log'
+  def log
+    Runner.batch do
+      run "docker logs -f local-mariadb"
+    end
+  end
+
+  private
+
+  def setup_sample_db(clazz, *cmds)
+    obj = clazz.new
+    cmds.each do |cmd|
+      obj.__send__(cmd)
+    end
+  end
+end
+
+Maria.start(ARGV)
