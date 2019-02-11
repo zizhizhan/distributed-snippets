@@ -5,6 +5,10 @@ services:
     container_name: local-mariadb
     environment:
       MYSQL_ROOT_PASSWORD: test123
+    volumes:
+      - /tmp/mysql/data:/var/lib/mysql
+      - /tmp/mysql/log:/var/log/mysql/
+      - ./my.cnf:/etc/mysql/my.cnf
     ports:
       - '3306:3306'
     restart: always

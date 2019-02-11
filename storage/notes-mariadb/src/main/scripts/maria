@@ -33,6 +33,7 @@ class Runner
 end
 
 SAMPLE_DB_DIR = File.expand_path('../../resources/sample_dbs', File.realpath(__FILE__))
+MY_CONFIG_FILE = File.expand_path('../my.cnf', File.realpath(__FILE__))
 SQL_CMD = "mysql --host=127.0.0.1 --port=3306"
 ROOT_PASS = "test123"
 
@@ -79,7 +80,7 @@ end
 
 # MariaDB
 class Maria < Thor
-  DATA_DIR = '/tmp/mysql'.freeze
+  MY_DIR = '/tmp/mysql'.freeze
 
   desc 'school drop init', 'Init school sample database'
   def school(*cmds)
@@ -110,7 +111,11 @@ class Maria < Thor
   desc 'start', 'Start MariaDB'
   def start
     Runner.batch do
-      run "docker run --name local-mariadb -d --rm -p 3306:3306 -v #{DATA_DIR}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=#{ROOT_PASS} mariadb/server:10.3"
+      run "docker run --name local-mariadb -d --rm -p 3306:3306 "\
+        "-v #{MY_DIR}/data:/var/lib/mysql "\
+        "-v #{MY_DIR}/log:/var/log/mysql "\
+        "-v #{MY_CONFIG_FILE}:/etc/mysql/my.cnf "\
+        "-e MYSQL_ROOT_PASSWORD=#{ROOT_PASS} mariadb/server:10.3"
     end
   end
 
