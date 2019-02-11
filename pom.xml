@@ -144,6 +144,7 @@
         <module>notes-apache</module>
         <module>storage/notes-h2</module>
         <module>storage/notes-postgres</module>
+        <module>storage/notes-mariadb</module>
         <module>tools/notes-maven</module>
     </modules>
 

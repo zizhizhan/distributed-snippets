@@ -3,15 +3,7 @@ package me.jameszhan.notes.maria;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.postgresql.copy.CopyManager;
-import org.postgresql.core.BaseConnection;
 
-import java.io.*;
-import java.net.URI;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,32 +16,37 @@ import java.util.List;
  * Time: 02:17
  */
 @Slf4j
-public class PgHelloTest {
+public class MariaDBHelloTest {
 
     @BeforeClass
     public static void registerDriver() throws Exception {
-        Class.forName("org.postgresql.Driver");
+        Class.forName("org.mariadb.jdbc.Driver");
     }
 
     @Test
     public void testDBVersion() throws SQLException {
-        String url = "jdbc:postgresql://localhost:5432/postgres";
-        String user = "postgres";
-        String password = "postgres";
+        String url = "jdbc:mariadb://localhost:3306/mysql";
+        String user = "root";
+        String password = "test123";
 
         try (Connection con = DriverManager.getConnection(url, user, password);
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery("SELECT VERSION();")) {
 
             if (rs.next()) {
-                log.info("version is {}.", rs.getArray(1));
+                log.info("version is {}.", rs.getString(1));
             }
         }
     }
 
+    /**
+     * ./maria school drop init
+     *
+     * @throws SQLException
+     */
     @Test
     public void addAllCoursesStudent() throws SQLException {
-        String url = "jdbc:postgresql://localhost:5432/school";
+        String url = "jdbc:mariadb://localhost:3306/school";
         String user = "school";
         String password = "school";
 
@@ -98,7 +95,7 @@ public class PgHelloTest {
             }
 
             Long studentId = null;
-            String addSQL = "INSERT INTO students(name, class_id, bio) VALUES(?, 1, ?) RETURNING id";
+            String addSQL = "INSERT INTO students(name, class_id, bio) VALUES(?, 1, ?)";
             try (PreparedStatement pst = conn.prepareStatement(addSQL, Statement.RETURN_GENERATED_KEYS)) {
                 pst.setString(1, studentName);
                 pst.setString(2, "James Zhan");
@@ -144,7 +141,7 @@ public class PgHelloTest {
      */
     @Test
     public void whoSelectedAllCourses() throws SQLException {
-        String url = "jdbc:postgresql://localhost:5432/school";
+        String url = "jdbc:mariadb://localhost:3306/school";
         String user = "school";
         String password = "school";
 
@@ -166,43 +163,4 @@ public class PgHelloTest {
         }
     }
 
-    @Test
-    public void copyOut() throws SQLException, IOException {
-        String url = "jdbc:postgresql://localhost:5432/school";
-        String user = "school";
-        String password = "school";
-
-        File targetFile = File.createTempFile("postgres", ".txt");
-        try {
-            try (Connection conn = DriverManager.getConnection(url, user, password)) {
-                CopyManager cm = new CopyManager((BaseConnection) conn);
-                try (FileOutputStream fos = new FileOutputStream(targetFile);
-                     OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8)) {
-                    cm.copyOut("COPY students TO STDOUT WITH DELIMITER AS '|'", osw);
-                }
-
-                URI uri = targetFile.toURI();
-                log.info("Begin to read {}.", uri);
-                Files.readAllLines(Paths.get(uri), Charset.forName("UTF-8")).forEach(log::info);
-            }
-        } finally {
-            targetFile.deleteOnExit();
-        }
-    }
-
-    @Test
-    public void copyIn() throws SQLException, IOException {
-        String url = "jdbc:postgresql://localhost:5432/school";
-        String user = "school";
-        String password = "school";
-
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        try (Connection conn = DriverManager.getConnection(url, user, password)) {
-            CopyManager cm = new CopyManager((BaseConnection) conn);
-            try (InputStream in = contextClassLoader.getResourceAsStream("students.txt");
-                 InputStreamReader isr = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                cm.copyIn("COPY students(name, class_id, bio) FROM STDIN WITH DELIMITER '|'", isr);
-            }
-        }
-    }
 }
