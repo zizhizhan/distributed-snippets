@@ -1,0 +1,31 @@
+[mysqld]
+
+server-id		= 1
+
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+default-storage-engine=INNODB
+
+log_bin			= /var/log/mysql/master-bin
+log_bin_index	= /var/log/mysql/master-bin.index
+binlog_format = ROW
+
+log_bin_trust_function_creators=1
+sync_binlog		    = 0
+expire_logs_days	= 90
+
+max_binlog_size         = 100M
+
+slow_query_log=1
+slow_query_log_file	= /var/log/mysql/slow-queries.log
+long_query_time = 3
+#log_slow_rate_limit	= 1000
+#log_slow_verbosity	= query_plan
+
+log-queries-not-using-indexes
+#log_slow_admin_statements
+
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+
+binlog-do-db=school

@@ -1,0 +1,37 @@
+[mysqld]
+server_id = 3
+
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+default-storage-engine=INNODB
+
+#Optimize omit
+
+#log_bin			= /var/log/mysql/slave-bin
+#log_bin_index	= /var/log/mysql/slave-bin.index
+#log_bin_trust_function_creators=1
+#binlog_format = ROW
+
+#sync_binlog		    = 0
+expire_logs_days	= 90
+
+max_binlog_size         = 100M
+
+relay_log = /var/log/mysql/relay-bin
+relay_log_index	= /var/log/mysql/relay-bin.index
+relay_log_info_file	= /var/log/mysql/relay-bin.info
+
+slave_skip_errors=all
+
+slow_query_log=1
+slow_query_log_file	= /var/log/mysql/slow-queries.log
+long_query_time = 3
+
+log-queries-not-using-indexes
+
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+
+read_only=1
+
+replicate_do_db=school  
+log_slave_updates=1

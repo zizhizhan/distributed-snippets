@@ -155,3 +155,28 @@ cd src/main/scripts
 ./maria stop
 ```
 
+## Master/Slave 模式
+
+```bash
+docker-compose -f docker-replication.yml up
+
+mysql --host=127.0.0.1 --port=3306 --user=root --password=test123 -e "CREATE USER 'repl'@'%' IDENTIFIED BY 'repl';"
+mysql --host=127.0.0.1 --port=3306 --user=root --password=test123 -e "GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';"
+mysql --host=127.0.0.1 --port=3306 --user=root --password=test123 -e "SHOW MASTER STATUS\G"
+
+docker exec -it local-mariadb-slave1 mysql -uroot -ptest123 -e \
+    "CHANGE MASTER TO MASTER_HOST='db.master',\
+    MASTER_PORT=3306,MASTER_USER='repl',MASTER_PASSWORD='repl',\
+    MASTER_LOG_FILE='master-bin.000003',MASTER_LOG_POS=1;"
+
+docker exec -it local-mariadb-slave1 mysql -uroot -ptest123 -e "SHOW SLAVE STATUS\G"
+
+docker exec -it local-mariadb-slave2 mysql -uroot -ptest123 -e \
+    "CHANGE MASTER TO MASTER_HOST='db.master',\
+    MASTER_PORT=3306,MASTER_USER='repl',MASTER_PASSWORD='repl',\
+    MASTER_LOG_FILE='master-bin.000003',MASTER_LOG_POS=1;"
+
+docker exec -it local-mariadb-slave2 mysql -uroot -ptest123 -e "START SLAVE;"
+
+docker exec -it local-mariadb-slave2 mysql -uroot -ptest123 -e "SHOW SLAVE STATUS\G"
+```

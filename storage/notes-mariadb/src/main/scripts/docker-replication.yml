@@ -1,0 +1,59 @@
+version: '3'
+services:
+  mariadb-master:
+    image: mariadb/server:10.3
+    container_name: local-mariadb-master
+    environment:
+      MYSQL_ROOT_PASSWORD: test123
+    volumes:
+      - /tmp/mysql/master/data:/var/lib/mysql
+      - /tmp/mysql/master/log:/var/log/mysql/
+      - ./master.cnf:/etc/mysql/conf.d/slave.cnf
+    restart: always
+    ports:
+      - 3306:3306
+
+  mariadb-slave1:
+    image: mariadb/server:10.3
+    container_name: local-mariadb-slave1
+    environment:
+      MYSQL_ROOT_PASSWORD: test123
+    volumes:
+      - /tmp/mysql/slave1/data:/var/lib/mysql
+      - /tmp/mysql/slave1/log:/var/log/mysql/
+      - ./slave1.cnf:/etc/mysql/conf.d/slave.cnf
+    restart: always
+    links:
+      - mariadb-master:db.master
+
+  mariadb-slave2:
+    image: mariadb/server:10.3
+    container_name: local-mariadb-slave2
+    environment:
+      MYSQL_ROOT_PASSWORD: test123
+    volumes:
+      - /tmp/mysql/slave2/data:/var/lib/mysql
+      - /tmp/mysql/slave2/log:/var/log/mysql/
+      - ./slave2.cnf:/etc/mysql/conf.d/slave.cnf
+    restart: always
+    links:
+      - mariadb-master:db.master
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma-multiple-local
+    ports:
+      - 8080:80
+    environment:
+      # PMA_ARBITRARY: 1
+      PMA_HOSTS: db.master,db.slave1,db.slave2
+      PMA_USER: root
+      PMA_PASSWORD: test123
+    depends_on:
+      - mariadb-master
+      - mariadb-slave1
+      - mariadb-slave2
+    links:
+      - mariadb-master:db.master
+      - mariadb-slave1:db.slave1
+      - mariadb-slave2:db.slave2

@@ -80,6 +80,8 @@ end
 
 # MariaDB
 class Maria < Thor
+  include Actions
+  
   MY_DIR = '/tmp/mysql'.freeze
 
   desc 'school drop init', 'Init school sample database'
@@ -89,57 +91,79 @@ class Maria < Thor
 
   desc 'dbs', 'show all databases'
   def dbs
-    Runner.batch do
-      run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "SHOW DATABASES;")
-    end
+    run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "SHOW DATABASES;")
   end
 
   desc 'users', 'show all users'
   def users
-    Runner.batch do
-      run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "SELECT user, host FROM mysql.user;")
-    end
+    run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} -e "SELECT user, host FROM mysql.user;")
   end
 
   desc 'tables', 'show all tables'
   def tables(db)
-    Runner.batch do
-      run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} #{db} -e "SHOW TABLES;")
-    end
+    run %(#{SQL_CMD} --user=root --password=#{ROOT_PASS} #{db} -e "SHOW TABLES;")
   end
 
   desc 'start', 'Start MariaDB'
   def start
-    Runner.batch do
-      run "docker run --name local-mariadb -d --rm -p 3306:3306 "\
-        "-v #{MY_DIR}/data:/var/lib/mysql "\
-        "-v #{MY_DIR}/log:/var/log/mysql "\
-        "-v #{MY_CONFIG_FILE}:/etc/mysql/my.cnf "\
-        "-e MYSQL_ROOT_PASSWORD=#{ROOT_PASS} mariadb/server:10.3"
-    end
-  end
-
-  desc 'pma', 'Start phpMyAdmin'
-  def pma
-    Runner.batch do
-      run "docker run --name local-pma --rm -d --link local-mariadb:db.local -p 8080:80 -e PMA_HOST=db.local phpmyadmin/phpmyadmin:4.8"
-    end
+    run "docker run --name local-mariadb -d --rm -p 3306:3306 "\
+      "-v #{MY_DIR}/data:/var/lib/mysql "\
+      "-v #{MY_DIR}/log:/var/log/mysql "\
+      "-v #{MY_CONFIG_FILE}:/etc/mysql/my.cnf "\
+      "-e MYSQL_ROOT_PASSWORD=#{ROOT_PASS} mariadb/server:10.3"
   end
 
   desc 'stop', 'Stop MariaDB'
   def stop
-    Runner.batch do
-      run "docker stop local-mariadb"
-      run "docker stop local-pma"
+    run "docker stop local-mariadb"
+    run "docker stop local-pma"
+  end
+
+  desc 'log local-mariadb', 'MariaDB log'
+  def log(db)
+    run "docker logs -f #{db}"
+  end
+
+  desc 'pma', 'Start phpMyAdmin'
+  def pma
+    run "docker run --name local-pma --rm -d --link local-mariadb:db.local -p 8080:80 -e PMA_HOST=db.local phpmyadmin/phpmyadmin:4.8"
+  end
+
+  desc 'repl', 'Start MariaDB via Master/Slave Mode'
+  def repl(cmd)
+    if cmd == 'init'
+      run "docker-compose -f docker-replication.yml up -d"
+      if Dir.exist?(MY_DIR)
+        sleep 10
+      else
+        sleep 180
+      end
+      run %{docker exec -it local-mariadb-master mysql -uroot -ptest123 -e "CREATE USER 'repl'@'%' IDENTIFIED BY 'repl'";}
+      run %{docker exec -it local-mariadb-master mysql -uroot -ptest123 -e "GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';"}
+
+      run "docker exec -it local-mariadb-slave1 mysql -uroot -ptest123 -e 'STOP SLAVE;'"
+      run "docker exec -it local-mariadb-slave1 mysql -uroot -ptest123 -e \""\
+        "CHANGE MASTER TO MASTER_HOST='db.master',"\
+        "MASTER_PORT=3306,MASTER_USER='repl',MASTER_PASSWORD='repl'\""
+      run "docker exec -it local-mariadb-slave1 mysql -uroot -ptest123 -e 'START SLAVE;'"
+
+      run "docker exec -it local-mariadb-slave2 mysql -uroot -ptest123 -e 'STOP SLAVE;'"
+      run "docker exec -it local-mariadb-slave2 mysql -uroot -ptest123 -e \""\
+        "CHANGE MASTER TO MASTER_HOST='db.master',"\
+        "MASTER_PORT=3306,MASTER_USER='repl',MASTER_PASSWORD='repl'\""
+      run "docker exec -it local-mariadb-slave2 mysql -uroot -ptest123 -e 'START SLAVE;'"
+    elsif cmd == 'stop'
+      run "docker-compose -f docker-replication.yml down"
+    else
+      run "docker-compose -f docker-replication.yml up -d"
     end
   end
 
-  desc 'log', 'MariaDB log'
-  def log
-    Runner.batch do
-      run "docker logs -f local-mariadb"
-    end
-  end
+
+
+
+
+
 
   private
 
