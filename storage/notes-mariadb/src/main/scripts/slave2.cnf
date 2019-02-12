@@ -33,5 +33,6 @@ sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
 
 read_only=1
 
-replicate_do_db=school  
 log_slave_updates=1
+
+replicate_do_db=school
