@@ -1,12 +1,12 @@
-package me.jameszhan.notes.h2;
+package me.jameszhan.notes.jta;
 
 import com.atomikos.icatch.jta.UserTransactionManager;
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 import lombok.extern.slf4j.Slf4j;
 import org.h2.jdbcx.JdbcDataSource;
+import org.h2.util.IOUtils;
 import org.junit.*;
 
-import java.rmi.registry.LocateRegistry;
 import java.sql.*;
 
 /**
@@ -18,7 +18,7 @@ import java.sql.*;
  * To change this template use File | Settings | File and Code Templates.
  */
 @Slf4j
-public class AtomikosHelloTest {
+public class UserTransactionManagerTest {
 
     private static final String db1Url = "jdbc:h2:mem:db1;DB_CLOSE_DELAY=-1";
     private static final String db2Url = "jdbc:h2:mem:db2;DB_CLOSE_DELAY=-1";
@@ -30,13 +30,11 @@ public class AtomikosHelloTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        LocateRegistry.createRegistry(1099);
-
         JdbcDataSource ds1 = new JdbcDataSource();
-        ds1.setURL(db1Url + ";TRACE_LEVEL_SYSTEM_OUT=2");
+        ds1.setURL(db1Url + ";TRACE_LEVEL_SYSTEM_OUT=1");
 
         JdbcDataSource ds2 = new JdbcDataSource();
-        ds2.setURL(db2Url + ";TRACE_LEVEL_SYSTEM_OUT=2");
+        ds2.setURL(db2Url + ";TRACE_LEVEL_SYSTEM_OUT=1");
 
         userTransactionManager = new UserTransactionManager();
         userTransactionManager.setForceShutdown(true);
@@ -70,29 +68,26 @@ public class AtomikosHelloTest {
         resetDb(db1Url, 1);
         resetDb(db2Url, 1);
 
-        log.info("Start JTA...");
+        log.info("JTA start...");
         Connection conn1 = null;
         Connection conn2 = null;
         try {
             userTransactionManager.begin();
-            conn1 = db1DataSourceBean.getConnection();
-            conn2 = db2DataSourceBean.getConnection();
 
+            conn1 = db1DataSourceBean.getConnection();
             conn1.prepareStatement("UPDATE table1 SET v = 12 WHERE id = 1").execute();
+
+            conn2 = db2DataSourceBean.getConnection();
             conn2.prepareStatement("UPDATE table1 SET v = 18 WHERE id = 1").execute();
 
             userTransactionManager.commit();
         } catch (Throwable t) {
-            log.warn("Execute ERROR.", t);
+            log.warn("JTA catch...", t);
             userTransactionManager.rollback();
         } finally {
-            log.info("Ena JTA...");
-            if (conn1 != null) {
-                conn1.close();
-            }
-            if (conn2 != null) {
-                conn2.close();
-            }
+            IOUtils.closeSilently(conn1);
+            IOUtils.closeSilently(conn2);
+            log.info("JTA finally...");
         }
 
         Assert.assertEquals(12, getV(db1Url));
@@ -104,7 +99,7 @@ public class AtomikosHelloTest {
         resetDb(db1Url, 2);
         resetDb(db2Url, 2);
 
-        log.info("Start JTA...");
+        log.info("JTA start...");
         Connection conn1 = null;
         Connection conn2 = null;
         try {
@@ -113,22 +108,18 @@ public class AtomikosHelloTest {
 //            conn1 = DriverManager.getConnection(db1Url);
 //            conn2 = DriverManager.getConnection(db2Url);
             conn1 = db1DataSourceBean.getConnection();
-            conn2 = db2DataSourceBean.getConnection();
-
             conn1.prepareStatement("UPDATE table1 SET v = 12 WHERE id = 1").execute();
+
+            conn2 = db2DataSourceBean.getConnection();
             conn2.prepareStatement("UPDATE table2 SET v = 18 WHERE id = 1").execute();
 
             userTransactionManager.commit();
         } catch (Throwable t) {
-            log.warn("Execute ERROR.", t);
+            log.warn("JTA catch...", t);
         } finally {
-            log.info("Ena JTA...");
-            if (conn1 != null) {
-                conn1.close();
-            }
-            if (conn2 != null) {
-                conn2.close();
-            }
+            IOUtils.closeSilently(conn1);
+            IOUtils.closeSilently(conn2);
+            log.info("JTA finally...");
         }
 
         Assert.assertEquals(2, getV(db1Url));
@@ -140,36 +131,35 @@ public class AtomikosHelloTest {
         resetDb(db1Url, 3);
         resetDb(db2Url, 3);
 
-        log.info("Start JTA...");
         Connection conn1 = null;
         Connection conn2 = null;
+
+        log.info("JTA start...");
         try {
             userTransactionManager.begin();
-            conn1 = db1DataSourceBean.getConnection();
-            conn2 = db2DataSourceBean.getConnection();
 
+            conn1 = db1DataSourceBean.getConnection();
             conn1.prepareStatement("UPDATE table1 SET v = 12 WHERE id = 1").execute();
+
+            conn2 = db2DataSourceBean.getConnection();
             conn2.prepareStatement("UPDATE table2 SET v = 18 WHERE id = 1").execute();
 
             userTransactionManager.commit();
         } catch (Throwable t) {
-            log.warn("Execute ERROR.", t);
+            log.warn("JTA catch...", t);
             userTransactionManager.rollback();
         } finally {
-            log.info("Ena JTA...");
-            if (conn1 != null) {
-                conn1.close();
-            }
-            if (conn2 != null) {
-                conn2.close();
-            }
+            IOUtils.closeSilently(conn1);
+            IOUtils.closeSilently(conn2);
+            log.info("JTA finally...");
         }
 
         Assert.assertEquals(3, getV(db1Url));
         Assert.assertEquals(3, getV(db2Url));
     }
 
-    private static void initDb(String dbUrl) throws SQLException {
+
+    static void initDb(String dbUrl) throws SQLException {
         try (Connection conn = DriverManager.getConnection(dbUrl)) {
             try (Statement st = conn.createStatement()) {
                 st.execute("CREATE TABLE table1(id bigint auto_increment PRIMARY KEY, v int);");
@@ -178,7 +168,7 @@ public class AtomikosHelloTest {
         }
     }
 
-    private static void resetDb(String dbUrl, int initValue) throws SQLException {
+    static void resetDb(String dbUrl, int initValue) throws SQLException {
         try (Connection conn = DriverManager.getConnection(dbUrl)) {
             try (Statement st = conn.createStatement()) {
                 st.execute("UPDATE table1 SET v = " + initValue + " WHERE id = 1");
@@ -186,7 +176,7 @@ public class AtomikosHelloTest {
         }
     }
 
-    private int getV(String dbUrl) throws Exception {
+    static int getV(String dbUrl) throws Exception {
         try (Connection conn = DriverManager.getConnection(dbUrl)) {
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery("SELECT * FROM table1 WHERE id = 1 LIMIT 0, 1")) {
