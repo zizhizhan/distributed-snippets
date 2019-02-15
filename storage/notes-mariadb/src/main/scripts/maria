@@ -153,17 +153,11 @@ class Maria < Thor
         "MASTER_PORT=3306,MASTER_USER='repl',MASTER_PASSWORD='repl'\""
       run "docker exec -it local-mariadb-slave2 mysql -uroot -ptest123 -e 'START SLAVE;'"
     elsif cmd == 'stop'
-      run "docker-compose -f docker-replication.yml down"
+      run "docker-compose -f docker-replica.yml down"
     else
-      run "docker-compose -f docker-replication.yml up -d"
+      run "docker-compose -f docker-replica.yml up -d"
     end
   end
-
-
-
-
-
-
 
   private
 
