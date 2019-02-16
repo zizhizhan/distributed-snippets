@@ -18,7 +18,7 @@ import java.sql.*;
  * `docker-compose -f docker-replica.yml up`
  *
  * @author James Zhan
- *
+ * <p>
  * Email: zhiqiangzhan@gmail.com
  * Date: 2019-02-16 00:22
  */
@@ -34,7 +34,7 @@ public class MariaDBXATest {
 
     @Test
     public void testSuccess() throws SQLException {
-        runTest("INSERT into user(name) VALUES ('user1')",
+        runJTA("INSERT into user(name) VALUES ('user1')",
                 "INSERT into user(name) VALUES ('user2')",
                 "INSERT into user(name) VALUES ('user3')",
                 "user1",
@@ -44,7 +44,7 @@ public class MariaDBXATest {
 
     @Test
     public void testRollback() throws SQLException {
-        runTest("INSERT into user(name) VALUES ('user1')",
+        runJTA("INSERT into user(name) VALUES ('user1')",
                 "INSERT into user(name) VALUES ('user2')",
                 "INSERT into user(name) VALUES ('user3user3user3user3user3user3')",
                 null,
@@ -59,12 +59,12 @@ public class MariaDBXATest {
         createDataBase("jdbc:mariadb://localhost:3308/", "test");
     }
 
-    private void runTest(String sql1,
-                         String sql2,
-                         String sql3,
-                         String expectResult1,
-                         String expectResult2,
-                         String expectResult3) throws SQLException {
+    private void runJTA(String sql1,
+                        String sql2,
+                        String sql3,
+                        String expectResult1,
+                        String expectResult2,
+                        String expectResult3) throws SQLException {
         // 获得资源管理器操作接口实例 RM1
         Connection conn1 = DriverManager.getConnection("jdbc:mariadb://localhost:3306/test", USER, PASS);
         XAConnection xaConn1 = new MariaXaConnection((MariaDbConnection) conn1);
@@ -82,7 +82,7 @@ public class MariaDBXATest {
 
         log.info("Create RMs successful.");
         try {
-            runTest(rm1, conn1, sql1, rm2, conn2, sql2, rm3, conn3, sql3);
+            runJTA(rm1, conn1, sql1, rm2, conn2, sql2, rm3, conn3, sql3);
             String result1 = getName(conn1), result2 = getName(conn2), result3 = getName(conn3);
             log.info("Get results [{},{},{}].", result1, result2, result3);
             Assert.assertEquals(expectResult1, result1);
@@ -96,7 +96,7 @@ public class MariaDBXATest {
         }
     }
 
-    private void runTest(XAResource rm1, Connection conn1, String sql1,
+    private void runJTA(XAResource rm1, Connection conn1, String sql1,
                         XAResource rm2, Connection conn2, String sql2,
                         XAResource rm3, Connection conn3, String sql3) {
 
