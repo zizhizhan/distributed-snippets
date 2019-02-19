@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @ChannelHandler.Sharable
 public abstract class ConnectionWatchdog extends ChannelInboundHandlerAdapter implements TimerTask, ChannelHandlerHolder {
-    private static final int MAX_ATTEMPTS = 10;
+    private static final int MAX_ATTEMPTS = 32;
     private final Bootstrap bootstrap;
     private final Timer timer;
     private final int port;

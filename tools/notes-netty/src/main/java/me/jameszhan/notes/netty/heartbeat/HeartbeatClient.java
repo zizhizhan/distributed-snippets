@@ -27,12 +27,11 @@ public class HeartbeatClient {
 
     private final ConnectorIdleStateTrigger idleStateTrigger = new ConnectorIdleStateTrigger();
 
-    private Bootstrap boot;
+    private final Bootstrap boot = new Bootstrap();
 
     public void connect(int port, String host) throws Exception {
         EventLoopGroup group = new NioEventLoopGroup();
 
-        boot = new Bootstrap();
         boot.group(group).channel(NioSocketChannel.class).handler(new LoggingHandler(LogLevel.INFO));
 
         final ConnectionWatchdog watchdog = new ConnectionWatchdog(boot, timer, port,host, true) {
