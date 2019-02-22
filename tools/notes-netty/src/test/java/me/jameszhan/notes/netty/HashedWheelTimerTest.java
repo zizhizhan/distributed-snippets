@@ -6,6 +6,10 @@ import io.netty.util.TimerTask;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 
+import java.text.MessageFormat;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -21,7 +25,7 @@ public class HashedWheelTimerTest {
 
     private static final HashedWheelTimer timer = new HashedWheelTimer();
 
-    public static void main(String[] args) {
+    public static void main2(String[] args) {
         timer.newTimeout(timeout -> {
             log.info("timeout is {}.", timeout);
         }, 10, TimeUnit.SECONDS);
@@ -39,6 +43,4 @@ public class HashedWheelTimerTest {
             }).start();
         }, 1, TimeUnit.SECONDS);
     }
-
-
 }

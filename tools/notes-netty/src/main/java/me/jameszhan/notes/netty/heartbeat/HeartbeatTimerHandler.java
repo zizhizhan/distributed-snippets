@@ -2,9 +2,8 @@ package me.jameszhan.notes.netty.heartbeat;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
+import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
-import io.netty.util.Timer;
-import io.netty.util.TimerTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
@@ -15,28 +14,22 @@ import java.util.concurrent.TimeUnit;
  * @author James Zhan
  *
  * Email: zhiqiangzhan@gmail.com
- * Date: 2019-02-18 03:01
+ * Date: 2019-02-20 00:51
  */
 @Slf4j
 @ChannelHandler.Sharable
-public abstract class ConnectionWatchdog extends ChannelInboundHandlerAdapter implements TimerTask, ChannelHandlerHolder {
-    private static final int MAX_ATTEMPTS = 32;
+public class HeartbeatTimerHandler extends ChannelInboundHandlerAdapter {
+    private static final int MAX_ATTEMPTS = 16;
+    private final HashedWheelTimer timer = new HashedWheelTimer();
     private final Bootstrap bootstrap;
-    private final Timer timer;
-    private final int port;
-
     private final String host;
+    private final int port;
+    private int attempts = 0;
 
-    private volatile boolean reconnect = true;
-    private int attempts;
-
-
-    public ConnectionWatchdog(Bootstrap bootstrap, Timer timer, int port,String host, boolean reconnect) {
+    public HeartbeatTimerHandler(Bootstrap bootstrap, String host, int port) {
         this.bootstrap = bootstrap;
-        this.timer = timer;
-        this.port = port;
         this.host = host;
-        this.reconnect = reconnect;
+        this.port = port;
     }
 
     /**
@@ -52,30 +45,23 @@ public abstract class ConnectionWatchdog extends ChannelInboundHandlerAdapter im
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        System.out.println("链接关闭");
         log.info("当前链路({} -> {})链接关闭.", ctx.channel().localAddress(), ctx.channel().remoteAddress());
-        if (reconnect) {
-            if (attempts < MAX_ATTEMPTS) {
-                attempts++;
-                //重连的间隔时间会越来越长
-                int timeout = 2 << attempts;
-                timer.newTimeout(this, timeout, TimeUnit.MILLISECONDS);
-            }
+        if (attempts < MAX_ATTEMPTS) {
+            long delay = 2 << attempts;
+            timer.newTimeout(this::reconnect, delay, TimeUnit.SECONDS);
+            log.info("Reconnect after {}s.", delay);
+
+            // 重连的间隔时间会越来越长
+            attempts++;
         }
         ctx.fireChannelInactive();
     }
 
-
-    public void run(Timeout timeout) {
+    private void reconnect(Timeout timeout) {
         ChannelFuture future;
         //bootstrap已经初始化好了，只需要将handler填入就可以了
         synchronized (bootstrap) {
-            bootstrap.handler(new ChannelInitializer<Channel>() {
-                @Override protected void initChannel(Channel ch) {
-                    ch.pipeline().addLast(handlers());
-                }
-            });
-            future = bootstrap.connect(host,port);
+            future = bootstrap.connect(host, port);
         }
 
         //future对象

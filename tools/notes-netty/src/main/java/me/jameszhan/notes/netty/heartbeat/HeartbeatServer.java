@@ -39,10 +39,9 @@ public class HeartbeatServer {
                     .option(ChannelOption.SO_BACKLOG, 100)
                     .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel(SocketChannel ch) {
+                        @Override public void initChannel(SocketChannel ch) {
                             ch.pipeline()
-                                    .addLast(new IdleStateHandler(5, 0, 0, TimeUnit.SECONDS))
+                                    .addLast(new IdleStateHandler(8, 0, 0, TimeUnit.SECONDS))
                                     .addLast("decoder", new StringDecoder())
                                     .addLast("encoder", new StringEncoder())
                                     .addLast(new HeartbeatServerHandler());

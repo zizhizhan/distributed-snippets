@@ -9,7 +9,6 @@ import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.HashedWheelTimer;
 
 import java.util.concurrent.TimeUnit;
 
@@ -23,44 +22,41 @@ import java.util.concurrent.TimeUnit;
  */
 public class HeartbeatClient {
 
-    protected final HashedWheelTimer timer = new HashedWheelTimer();
+    private final String host;
+    private final int port;
+    private final Bootstrap bootstrap;
+    private final ConnectorIdleStateTrigger idleStateTrigger;
+    private final HeartbeatTimerHandler heartbeatTimerHandler;
 
-    private final ConnectorIdleStateTrigger idleStateTrigger = new ConnectorIdleStateTrigger();
+    public HeartbeatClient(String host, int port) {
+        this.host = host;
+        this.port = port;
+        this.bootstrap = new Bootstrap();
+        this.idleStateTrigger = new ConnectorIdleStateTrigger();
+        this.heartbeatTimerHandler = new HeartbeatTimerHandler(bootstrap, host, port);
+    }
 
-    private final Bootstrap boot = new Bootstrap();
-
-    public void connect(int port, String host) throws Exception {
+    public void connect() throws Exception {
         EventLoopGroup group = new NioEventLoopGroup();
+        bootstrap.group(group).channel(NioSocketChannel.class).handler(new LoggingHandler(LogLevel.INFO));
 
-        boot.group(group).channel(NioSocketChannel.class).handler(new LoggingHandler(LogLevel.INFO));
-
-        final ConnectionWatchdog watchdog = new ConnectionWatchdog(boot, timer, port,host, true) {
-            public ChannelHandler[] handlers() {
-                return new ChannelHandler[] {
-                        this,
-                        new IdleStateHandler(0, 4, 0, TimeUnit.SECONDS),
-                        idleStateTrigger,
-                        new StringDecoder(),
-                        new StringEncoder(),
-                        new HeartbeatClientHandler()
-                };
-            }
-        };
-
-        ChannelFuture future;
-        //进行连接
         try {
-            synchronized (boot) {
-                boot.handler(new ChannelInitializer<Channel>() {
-
-                    //初始化channel
-                    @Override
-                    protected void initChannel(Channel ch) {
-                        ch.pipeline().addLast(watchdog.handlers());
+            ChannelFuture future;
+            //进行连接
+            synchronized (bootstrap) {
+                bootstrap.handler(new ChannelInitializer<Channel>() {
+                    @Override protected void initChannel(Channel ch) {
+                        ch.pipeline().addLast(
+                                heartbeatTimerHandler,
+                                new IdleStateHandler(0, 8, 0, TimeUnit.SECONDS),
+                                idleStateTrigger,
+                                new StringDecoder(),
+                                new StringEncoder(),
+                                new HeartbeatClientHandler());
                     }
                 });
 
-                future = boot.connect(host,port);
+                future = bootstrap.connect(host, port);
             }
 
             // 以下代码在synchronized同步块外面是安全的
@@ -79,7 +75,7 @@ public class HeartbeatClient {
                 // 采用默认值
             }
         }
-        new HeartbeatClient().connect(port, "127.0.0.1");
+        new HeartbeatClient("127.0.0.1", port).connect();
     }
 
 

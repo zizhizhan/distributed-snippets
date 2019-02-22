@@ -16,8 +16,8 @@ import java.util.Date;
  * Email: zhiqiangzhan@gmail.com
  * Date: 2019-02-18 03:06
  */
-@ChannelHandler.Sharable
 @Slf4j
+@ChannelHandler.Sharable
 public class HeartbeatClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
