@@ -20,9 +20,9 @@ public class DistributedLockTest {
     private static int total = 0;
 
     public static void main(String[] args) throws InterruptedException {
-        String connectString = "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183,127.0.0.1:2184,127.0.0.1:2185";
+        String connectString = "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183";
         long timeStartMs = System.currentTimeMillis();
-        int threadCount = 9;
+        int threadCount = 10;
         ExecutorService service = Executors.newFixedThreadPool(threadCount);
 
         CountDownLatch latch = new CountDownLatch(threadCount);

@@ -16,7 +16,10 @@ buildNumber.properties
 .classpath
 .project
 .factorypath
-.iml
-.ipr
-.iws
 
+.idea/
+*.iml
+*.ipr
+*.iws
+
+.DS_Store

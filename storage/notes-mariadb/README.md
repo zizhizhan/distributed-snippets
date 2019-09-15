@@ -105,6 +105,7 @@ docker run --name local-pma --rm -d \
 ```bash
 docker run --name local-pma --rm -d \
     -e PMA_ARBITRARY=1 \
+    -e PMA_PORT=4000 \
     -p 8080:80 phpmyadmin/phpmyadmin:4.8
 ```
 
