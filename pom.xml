@@ -147,7 +147,7 @@
     </build>
 
     <modules>
-         <module>notes-apache</module>
+        <module>notes-apache</module>
         <module>consensus/notes-jta</module>
 
         <!--        <module>storage/notes-h2</module>-->

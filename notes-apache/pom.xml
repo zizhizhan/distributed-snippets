@@ -107,6 +107,7 @@
     <modules>
         <module>notes-zookeeper</module>
         <module>notes-hadoop</module>
+        <module>notes-kafka</module>
     </modules>
 
 </project>
