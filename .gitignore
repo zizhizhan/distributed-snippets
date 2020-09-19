@@ -23,3 +23,6 @@ buildNumber.properties
 *.iws
 
 .DS_Store
+
+*.db
+*.log

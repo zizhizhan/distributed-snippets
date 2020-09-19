@@ -36,7 +36,6 @@ public class UserTransactionTest {
     private static AtomikosDataSourceBean db1DataSourceBean;
     private static AtomikosDataSourceBean db2DataSourceBean;
 
-
     @BeforeClass
     public static void setUp() throws Exception {
         JdbcDataSource ds1 = new JdbcDataSource();
