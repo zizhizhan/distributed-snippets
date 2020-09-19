@@ -20,9 +20,8 @@
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.2.3</logback.version>
         <junit.version>4.12</junit.version>
-        <guava.version>26.0-jre</guava.version>
-        <netty.version>4.1.29.Final</netty.version>
-        <jetty.version>8.1.2.v20120308</jetty.version>
+        <guava.version>29.0-jre</guava.version>
+        <jetty.version>9.4.31.v20200723</jetty.version>
     </properties>
 
     <dependencies>
@@ -151,9 +150,10 @@
 <!--        <module>storage/notes-h2</module>-->
 <!--        <module>storage/notes-postgres</module>-->
 <!--        <module>storage/notes-mariadb</module>-->
-<!--        <module>jcp/notes-jta</module>-->
+        <module>storage/notes-elastic</module>
+
+        <!--        <module>jcp/notes-jta</module>-->
 <!--        <module>tools/notes-maven</module>-->
-<!--        <module>tools/notes-netty</module>-->
     </modules>
 
 </project>
