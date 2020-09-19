@@ -58,6 +58,7 @@
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
@@ -86,18 +87,6 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>1.2.73</version>
-            </dependency>
-
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy</artifactId>
-                <version>1.9.2</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.reflections</groupId>
-                <artifactId>reflections</artifactId>
-                <version>0.9.11</version>
             </dependency>
 
             <dependency>
@@ -150,13 +139,12 @@
         <module>notes-apache</module>
         <module>consensus/notes-jta</module>
 
-        <!--        <module>storage/notes-h2</module>-->
-<!--        <module>storage/notes-postgres</module>-->
-<!--        <module>storage/notes-mariadb</module>-->
+        <module>storage/notes-h2</module>
+        <module>storage/notes-postgres</module>
+        <module>storage/notes-mariadb</module>
         <module>storage/notes-elastic</module>
 
-        <!--        <module>jcp/notes-jta</module>-->
-<!--        <module>tools/notes-maven</module>-->
+        <module>tools/notes-maven</module>
     </modules>
 
 </project>
