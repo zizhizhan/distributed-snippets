@@ -1,4 +1,4 @@
-package com.zizhizhan.interview.elastic;
+package com.zizhizhan.notes.etcd;
 
 import io.etcd.jetcd.ByteSequence;
 import io.etcd.jetcd.Client;
