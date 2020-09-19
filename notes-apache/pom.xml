@@ -13,7 +13,7 @@
 
     <properties>
         <zookeeper.version>3.4.13</zookeeper.version>
-        <hadoop.version>3.2.0</hadoop.version>
+        <hadoop.version>3.3.0</hadoop.version>
         <spark.version>2.4.3</spark.version>
     </properties>
 
