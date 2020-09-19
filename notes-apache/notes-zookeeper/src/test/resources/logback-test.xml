@@ -5,6 +5,7 @@
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
+    <logger name="com.zizhizhan" level="TRACE" />
     <logger name="me.jameszhan.notes" level="TRACE" />
     <root level="WARN">
         <appender-ref ref="STDOUT" />
