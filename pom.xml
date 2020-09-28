@@ -139,7 +139,7 @@
         <module>notes-apache</module>
         <module>consensus/notes-jta</module>
         <module>consensus/notes-etcd</module>
-
+        <module>consensus/notes-mvcc</module>
         <module>storage/notes-h2</module>
         <module>storage/notes-postgres</module>
         <module>storage/notes-mariadb</module>
