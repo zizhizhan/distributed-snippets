@@ -144,6 +144,7 @@
         <module>storage/notes-postgres</module>
         <module>storage/notes-mariadb</module>
         <module>storage/notes-elastic</module>
+        <module>computing/notes-akka</module>
     </modules>
 
 </project>
