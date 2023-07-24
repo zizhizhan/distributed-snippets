@@ -8,11 +8,11 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>notes-flink</artifactId>
-    <name>Flink Notes</name>
+    <artifactId>notes-flink117</artifactId>
+    <name>Flink 1.17 Notes</name>
 
     <properties>
-        <flink.version>1.15.4</flink.version>
+        <flink.version>1.17.1</flink.version>
     </properties>
 
     <dependencies>
@@ -40,12 +40,11 @@
             <version>${flink.version}</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>org.apache.flink</groupId>-->
-<!--            <artifactId>flink-connector-datagen</artifactId>-->
-<!--            <version>${flink.version}</version>-->
-<!--        </dependency>-->
-
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-datagen</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
 
 </dependencies>
 </project>

@@ -108,7 +108,7 @@
         <module>notes-zookeeper</module>
         <module>notes-hadoop</module>
         <module>notes-kafka</module>
-        <module>notes-flink</module>
+        <module>notes-flink117</module>
     </modules>
 
 </project>
